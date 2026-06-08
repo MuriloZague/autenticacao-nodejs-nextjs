@@ -54,7 +54,14 @@ router.post("/login", async (req, res) => {
     // Gera JWT
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "30d" });
 
-    res.status(200).json(token);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({ message: "Login realizado com sucesso!" });
   } catch (err) {
     res.status(500).json({ message: "Erro do servidor" });
   }

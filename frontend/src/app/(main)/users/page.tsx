@@ -12,7 +12,7 @@ export default async function ListUsers() {
   const token = cookieStore.get("token")?.value;
 
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/usuarios`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Cookie: `token=${token}` },
   });
 
   const { users }: { users: User[] } = await response.json();

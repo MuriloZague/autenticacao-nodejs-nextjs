@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -16,7 +15,6 @@ type LoginForm = z.infer<typeof schema>;
 
 function Login() {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
 
   const {
     register,
@@ -26,19 +24,12 @@ function Login() {
     resolver: zodResolver(schema),
   });
 
-  useEffect(() => {
-    if (token) {
-      document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 30}`;
-      router.push("/users");
-    }
-  }, [token, router]);
-
   async function onSubmit(data: LoginForm) {
     try {
-      const response = await api.post("/login", data);
-      setToken(response.data);
+      await api.post("/login", data);
+      router.push("/users");
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   }
 

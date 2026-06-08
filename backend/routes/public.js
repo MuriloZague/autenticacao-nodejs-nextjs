@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { cadastroSchema, loginSchema } from "../schemas/auth.js";
+import { loginLimiter, cadastroLimiter } from "../middlewares/rateLimiter.js";
 import { prisma } from "../lib/prisma.ts";
 
 const router = express.Router();
@@ -9,7 +10,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Cadastro
-router.post("/cadastro", async (req, res) => {
+router.post("/cadastro", cadastroLimiter, async (req, res) => {
   const result = cadastroSchema.safeParse(req.body);
 
   if (!result.success) {
@@ -38,7 +39,7 @@ router.post("/cadastro", async (req, res) => {
 });
 
 // Login
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const result = loginSchema.safeParse(req.body);
 
   if (!result.success) {

@@ -7,10 +7,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import api from "../../../services/api";
 import { loginSchema, type LoginForm } from "../../../schemas/auth";
+import { useCountdown, formatCountdown } from "../../../hooks/useCountdown";
 
 function Login() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState(0);
+  const countdown = useCountdown(retryAfter);
 
   const {
     register,
@@ -22,13 +25,19 @@ function Login() {
 
   async function onSubmit(data: LoginForm) {
     setServerError(null);
+    setRetryAfter(0);
     try {
       await api.post("/login", data);
       router.push("/users");
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const message = err.response?.data?.message;
-        setServerError(message || "Erro ao entrar. Tente novamente.");
+        const { message, retryAfter } = err.response?.data ?? {};
+        if (retryAfter) {
+          setRetryAfter(retryAfter);
+          setServerError(message);
+        } else {
+          setServerError(message || "Erro ao entrar. Tente novamente.");
+        }
       }
     }
   }
@@ -71,13 +80,19 @@ function Login() {
           </div>
 
           {serverError && (
-            <p className="text-red-400 text-sm text-center">{serverError}</p>
+            <p className="text-red-400 text-sm text-center">
+              <span>{serverError}
+              {countdown > 0 && (
+                formatCountdown(countdown)
+              )}
+              </span>
+            </p>
           )}
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg py-2.5 transition cursor-pointer"
+            disabled={isSubmitting || countdown > 0}
+            className="mt-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-2.5 transition cursor-pointer"
           >
             {isSubmitting ? "Entrando..." : "Entrar"}
           </button>

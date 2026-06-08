@@ -1,35 +1,35 @@
 "use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import axios from "axios";
 import api from "../../../services/api";
-
-const schema = z.object({
-  email: z.string().email("E-mail inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-});
-
-type LoginForm = z.infer<typeof schema>;
+import { loginSchema, type LoginForm } from "../../../schemas/auth";
 
 function Login() {
   const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(loginSchema),
   });
 
   async function onSubmit(data: LoginForm) {
+    setServerError(null);
     try {
       await api.post("/login", data);
       router.push("/users");
     } catch (err) {
-      console.error(err);
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message;
+        setServerError(message || "Erro ao entrar. Tente novamente.");
+      }
     }
   }
 
@@ -69,6 +69,10 @@ function Login() {
               </span>
             )}
           </div>
+
+          {serverError && (
+            <p className="text-red-400 text-sm text-center">{serverError}</p>
+          )}
 
           <button
             type="submit"

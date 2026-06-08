@@ -1,36 +1,35 @@
 "use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import axios from "axios";
 import api from "../../../services/api";
-
-const schema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("E-mail inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-});
-
-type CadastroForm = z.infer<typeof schema>;
+import { cadastroSchema, type CadastroForm } from "../../../schemas/auth";
 
 function Cadastro() {
   const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<CadastroForm>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(cadastroSchema),
   });
 
   async function onSubmit(data: CadastroForm) {
+    setServerError(null);
     try {
       await api.post("/cadastro", data);
       router.push("/login");
     } catch (err) {
-      console.log(err);
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message;
+        setServerError(message || "Erro ao criar conta. Tente novamente.");
+      }
     }
   }
 
@@ -85,6 +84,10 @@ function Cadastro() {
               </span>
             )}
           </div>
+
+          {serverError && (
+            <p className="text-red-400 text-sm text-center">{serverError}</p>
+          )}
 
           <button
             type="submit"

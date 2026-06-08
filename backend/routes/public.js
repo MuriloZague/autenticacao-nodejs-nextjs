@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { cadastroSchema, loginSchema } from "../schemas/auth.js";
 import { prisma } from "../lib/prisma.ts";
 
 const router = express.Router();
@@ -9,20 +10,28 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Cadastro
 router.post("/cadastro", async (req, res) => {
+  const result = cadastroSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({ errors: result.error.flatten().fieldErrors });
+  }
+
   try {
-    const user = req.body;
+    const { name, email, password } = result.data;
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return res.status(409).json({ message: "E-mail já cadastrado." });
+    }
 
     const salt = await bcrypt.genSalt(10);
-    const hashPassword = await bcrypt.hash(user.password, salt);
+    const hashPassword = await bcrypt.hash(password, salt);
 
     await prisma.user.create({
-      data: {
-        email: user.email,
-        name: user.name,
-        password: hashPassword,
-      },
+      data: { name, email, password: hashPassword },
     });
-    res.status(201).json({ message: "Usuario criado com sucesso!"});
+
+    res.status(201).json({ message: "Usuario criado com sucesso!" });
   } catch (err) {
     res.status(500).json({ message: "Erro do servidor" });
   }
@@ -30,25 +39,25 @@ router.post("/cadastro", async (req, res) => {
 
 // Login
 router.post("/login", async (req, res) => {
-  try {
-    const userInfo = req.body;
+  const result = loginSchema.safeParse(req.body);
 
-    // Busca usuario se existe ou nao
-    const user = await prisma.user.findUnique({
-      where: {
-        email: userInfo.email,
-      },
-    });
+  if (!result.success) {
+    return res.status(400).json({ errors: result.error.flatten().fieldErrors });
+  }
+
+  try {
+    const { email, password } = result.data;
+
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return res.status(404).json({ message: "Usuário nao encontrado!" });
+      return res.status(404).json({ message: "E-mail não encontrado." });
     }
 
-    // Verifica se senha corresponde ou nao
-    const isMatch = await bcrypt.compare(userInfo.password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: "Senha incorreta!" });
+      return res.status(400).json({ message: "Senha incorreta." });
     }
 
     // Gera JWT

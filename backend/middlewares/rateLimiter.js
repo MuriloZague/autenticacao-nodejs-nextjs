@@ -6,7 +6,7 @@ const createHandler = (message) => (req, res) => {
 };
 
 export const loginLimiter = rateLimit({
-  windowMs: 0.3 * 60 * 1000,
+  windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,

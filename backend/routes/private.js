@@ -15,6 +15,10 @@ router.get("/usuarios", async (req, res) => {
 });
 
 router.delete("/usuarios/:id", async (req, res) => {
+  if (req.userId !== req.params.id) {
+    return res.status(403).json({ message: "Não autorizado." });
+  }
+
   try {
     await prisma.user.delete({
       where: {
